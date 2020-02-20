@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from . import models
 from . import serializers
 from rest_framework_extensions.mixins import NestedViewSetMixin
+from django.http import Http404
+from django.core.files import File
 import ffmpeg
 
 
@@ -27,10 +29,14 @@ class RecordViewSet(NestedViewSetMixin, mixins.ListModelMixin, mixins.CreateMode
 
     @action(detail=False, methods=['get'])
     def get_symphony(self, request, parent_lookup_user=None, pk=None):
+        if not parent_lookup_user:
+            raise Http404
+        temp_output = "temp_output.mp3"
         date_from = request.query_params.get("date_from")
         date_to = request.query_params.get("date_to")
         if not (date_from and date_to):
-            print("aralii")
+            # TODO return error
+            return Response()
 
         records = models.Record.objects.filter(user=parent_lookup_user, date_time__gte=date_from, date_time__lte=date_to)\
             .order_by("date_time")
@@ -38,17 +44,14 @@ class RecordViewSet(NestedViewSetMixin, mixins.ListModelMixin, mixins.CreateMode
 
         try:
             audio_files = [ffmpeg.input(emotion.audio.path) for emotion in emotions]
-            ffmpeg.concat(*audio_files, v=0, a=1).output("alo.mp3").overwrite_output().run()
+            ffmpeg.concat(*audio_files, v=0, a=1).output("temp_output.mp3").overwrite_output().run()
         except ffmpeg.Error as e:
             print("ffmpeg error")
             print(e)
-        return Response()
-        # user = self.get_object()
-        # serializer = PasswordSerializer(data=request.data)
-        # if serializer.is_valid():
-        #     user.set_password(serializer.data['password'])
-        #     user.save()
-        #     return Response({'status': 'password set'})
-        # else:
-        #     return Response(serializer.errors,
-        #                     status=status.HTTP_400_BAD_REQUEST)
+            # TODO return erro
+            return Response()
+        song = models.Song(user=parent_lookup_user, date_from=date_from, date_to=date_to)
+        song.song.save("{}-{}.mp3".format(date_from, date_to), File(open(temp_output, 'rb')))
+        song.save()
+        return Response(serializers.SongSerializer(song))
+

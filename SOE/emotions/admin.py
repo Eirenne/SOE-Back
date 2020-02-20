@@ -11,3 +11,8 @@ class EmotionAdmin(admin.ModelAdmin):
 @admin.register(models.Record)
 class RecordAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(models.Song)
+class SongAdmin(admin.ModelAdmin):
+    pass

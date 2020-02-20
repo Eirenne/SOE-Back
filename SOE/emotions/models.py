@@ -29,10 +29,19 @@ class Record(models.Model):
         return "{}:{}".format(self.user.first_name, self.date_time)
 
 
+def song_upload_to(instance, filename):
+    return "users/{}/songs/{}".format(instance.user.id, filename)
+
+
 class Song(models.Model):
     class Meta:
         verbose_name = "Song"
         verbose_name_plural = "Songs"
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    date_from = models.DateField()
+    date_to = models.DateField()
+    song = models.FileField(upload_to=song_upload_to)
 
+    def __str__(self):
+        return "{}: {} - {}".format(self.user.get_full_name(), self.date_from, self.date_to)
