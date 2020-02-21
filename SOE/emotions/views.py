@@ -19,7 +19,7 @@ class SongViewSet(NestedViewSetMixin, mixins.ListModelMixin, GenericViewSet):
 class EmotionViewSet(mixins.ListModelMixin, GenericViewSet):
     queryset = models.Emotion.objects.all()
     serializer_class = serializers.EmotionSerializer
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = ()
 
 
 class RecordViewSet(NestedViewSetMixin, mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):
@@ -27,31 +27,38 @@ class RecordViewSet(NestedViewSetMixin, mixins.ListModelMixin, mixins.CreateMode
     serializer_class = serializers.RecordSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['post'])
     def get_symphony(self, request, parent_lookup_user=None, pk=None):
-        if not parent_lookup_user:
+        if not request.user:
             raise Http404
         temp_output = "temp_output.mp3"
-        date_from = request.query_params.get("date_from")
-        date_to = request.query_params.get("date_to")
+        date_from = request.data.get("date_from")
+        date_to = request.data.get("date_to")
         if not (date_from and date_to):
             # TODO return error
             return Response()
+        #
+        records = models.Record.objects.filter(user=request.user, date__gte=date_from, date__lte=date_to)\
+            .order_by("date")
+        emotions = [emotion for record in records for emotion in record.emotions.all()]
 
-        records = models.Record.objects.filter(user=parent_lookup_user, date_time__gte=date_from, date_time__lte=date_to)\
-            .order_by("date_time")
-        emotions = [record.emotions for record in records]
-
+        if not emotions:
+            return Response()
+        #
         try:
-            audio_files = [ffmpeg.input(emotion.audio.path) for emotion in emotions]
-            ffmpeg.concat(*audio_files, v=0, a=1).output("temp_output.mp3").overwrite_output().run()
+            audio_files = []
+            for i, emotion in enumerate(emotions):
+                ffmpeg.input(emotion.audio.path).output("intermediate{}.mp3".format(i)).overwrite_output().run()
+                audio_files.append(ffmpeg.input("intermediate{}.mp3".format(i)))
+            # audio_files = [ffmpeg.input(emotion.audio.path) for emotion in emotions]
+            ffmpeg.concat(*audio_files, v=0, a=1).output("temp_output.mp3", ).overwrite_output().run()
         except ffmpeg.Error as e:
-            print("ffmpeg error")
-            print(e)
+            # print("ffmpeg error")
+            # print(e)
             # TODO return erro
             return Response()
-        song = models.Song(user=parent_lookup_user, date_from=date_from, date_to=date_to)
+        song = models.Song(user=request.user, date_from=date_from, date_to=date_to)
         song.song.save("{}-{}.mp3".format(date_from, date_to), File(open(temp_output, 'rb')))
         song.save()
-        return Response(serializers.SongSerializer(song))
+        return Response(serializers.SongSerializer(song).data)
 

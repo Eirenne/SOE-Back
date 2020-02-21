@@ -17,7 +17,6 @@ def current_user(request):
     """
     Determine the current user by their token, and return their data
     """
-
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
 
@@ -26,7 +25,7 @@ class UserViewSet(NestedViewSetMixin, mixins.CreateModelMixin, mixins.RetrieveMo
                   GenericViewSet):
     queryset = User.objects.all()
     serializer_class = serializers.UserSerializer
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.AllowAny,)
 
     def create(self, request, *args, **kwargs):
         serializer = UserSerializerWithToken(data=request.data)

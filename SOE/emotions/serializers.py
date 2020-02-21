@@ -9,6 +9,8 @@ class EmotionSerializer(serializers.ModelSerializer):
 
 
 class RecordSerializer(serializers.ModelSerializer):
+    date = serializers.DateField(format="%Y-%m-%d")
+
     class Meta:
         model = models.Record
         fields = '__all__'

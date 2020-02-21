@@ -146,4 +146,8 @@ CORS_ORIGIN_ALLOW_ALL = True
 #     'JWT_RESPONSE_PAYLOAD_HANDLER': 'SOE.users.views.my_jwt_response_handler'
 # }
 
+JWT_AUTH = {
+    'JWT_VERIFY_EXPIRATION': False,
+}
+
 django_heroku.settings(locals())

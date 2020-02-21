@@ -2,6 +2,7 @@ from rest_framework import serializers
 from . import models
 from rest_framework_jwt.settings import api_settings
 from django.contrib.auth.models import User
+from SOE.emotions.serializers import RecordSerializer
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -11,10 +12,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    records = RecordSerializer(many=True, read_only=True)
 
     class Meta:
         model = User
-        fields = ('username',)
+        fields = ('username', 'records', "id")
 
 
 class UserSerializerWithToken(serializers.ModelSerializer):

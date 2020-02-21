@@ -21,12 +21,12 @@ class Record(models.Model):
     class Meta:
         verbose_name = "Record"
         verbose_name_plural = "Records"
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    date_time = models.DateTimeField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='records')
+    date = models.DateField()
     emotions = models.ManyToManyField(Emotion)
 
     def __str__(self):
-        return "{}:{}".format(self.user.first_name, self.date_time)
+        return "{}:{:%Y/%m/%d}".format(self.user.username, self.date)
 
 
 def song_upload_to(instance, filename):
@@ -44,4 +44,4 @@ class Song(models.Model):
     song = models.FileField(upload_to=song_upload_to)
 
     def __str__(self):
-        return "{}: {} - {}".format(self.user.get_full_name(), self.date_from, self.date_to)
+        return "{}: {:%Y/%m/%d} - {:%Y/%m/%d}".format(self.user.username, self.date_from, self.date_to)
